@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Markdown PGP Gist Editor</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/openpgp/4.10.10/openpgp.min.js"></script>
+    <script src="./openpgp.min.js"></script>
 </head>
 <body>
     <h1>Markdown PGP Gist Editor</h1>
@@ -71,7 +71,7 @@
                 description: "PGP Encrypted Markdown",
                 public: false,
                 files: {
-                    "markdown.md": {
+                    "data.asc": {
                         content: content
                     }
                 }
@@ -101,7 +101,7 @@
                 }
             });
             const data = await res.json();
-            const fileContent = data.files["markdown.md"].content;
+            const fileContent = data.files["data.asc"].content;
             const decryptedText = await decodeAndDecrypt(fileContent);
             document.getElementById('editor').value = decryptedText;
         }
