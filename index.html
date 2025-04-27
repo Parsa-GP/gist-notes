@@ -1,27 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title>Markdown PGP Gist Editor</title>
     <script src="./openpgp.min.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <h1>Markdown PGP Gist Editor</h1>
-
-    <div id="config" style="margin-bottom: 20px;">
-        <h3>Configuration</h3>
-        <label>GitHub Token: <input type="text" id="githubToken"></label><br><br>
-        <label>Gist ID (leave empty to create new): <input type="text" id="gistId"></label><br><br>
-        <label>PGP Public Key:<br><textarea id="pgpPublic" style="width:100%;height:100px;"></textarea></label><br><br>
-        <label>PGP Private Key:<br><textarea id="pgpPrivate" style="width:100%;height:100px;"></textarea></label><br><br>
-        <label>PGP Passphrase: <input type="password" id="pgpPassphrase"></label><br><br>
-        <button id="saveConfig">Save Config</button>
-        <button id="exportConfig">Export Config</button>
-        <input type="file" id="importFile" style="display:none;">
-        <button id="importConfig">Import Config</button>
+    <div id="config">
+        <span id="cfg-title">Configuration</span>
+        <span id="cfg-subtitle">(hover to expand)</span>
+        <table>
+            <tr>
+                <td>GitHub Token:</td>
+                <td><input type="text" id="githubToken"><br></td>
+            </tr>
+            <tr>
+                <td>Gist ID (leave empty to create new):</td>
+                <td><input type="text" id="gistId"><br></td>
+            </tr>
+            <tr>
+                <td>PGP Public Key:</td>
+                <td><textarea id="pgpPublic" style="width:100%;height:100px;"></textarea><br></td>
+            </tr>
+            <tr>
+                <td>PGP Private Key:</td>
+                <td><textarea id="pgpPrivate" style="width:100%;height:100px;"></textarea><br></td>
+            </tr>
+            <tr>
+                <td>PGP Passphrase:</td>
+                <td><input type="password" id="pgpPassphrase" autocomplete="off"><br></td>
+            </tr>
+            <tr>
+                <td><button id="saveConfig">Save Config</button></td>
+                <td>
+                    <button id="exportConfig">Export Config</button>
+                    <input type="file" id="importFile" style="display:none;">
+                    <button id="importConfig">Import Config</button>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <textarea id="editor" style="width:100%; height:300px;"></textarea><br>
+    <textarea id="editor"></textarea><br>
     <button id="saveBtn">Save to Gist</button>
 
     <script>
