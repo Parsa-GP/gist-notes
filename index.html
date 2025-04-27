@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Markdown PGP Gist Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/openpgp/4.10.10/openpgp.min.js"></script>
+</head>
+<body>
+    <h1>Markdown PGP Gist Editor</h1>
+
+    <div id="config" style="margin-bottom: 20px;">
+        <h3>Configuration</h3>
+        <label>GitHub Token: <input type="text" id="githubToken"></label><br><br>
+        <label>Gist ID (leave empty to create new): <input type="text" id="gistId"></label><br><br>
+        <label>PGP Public Key:<br><textarea id="pgpPublic" style="width:100%;height:100px;"></textarea></label><br><br>
+        <label>PGP Private Key:<br><textarea id="pgpPrivate" style="width:100%;height:100px;"></textarea></label><br><br>
+        <label>PGP Passphrase: <input type="password" id="pgpPassphrase"></label><br><br>
+        <button id="saveConfig">Save Config</button>
+        <button id="exportConfig">Export Config</button>
+        <input type="file" id="importFile" style="display:none;">
+        <button id="importConfig">Import Config</button>
+    </div>
+
+    <textarea id="editor" style="width:100%; height:300px;"></textarea><br>
+    <button id="saveBtn">Save to Gist</button>
+
+    <script>
+        function setCookie(name, value, days = 365) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
+        }
+
+        function getCookie(name) {
+            return document.cookie.split('; ').reduce((r, v) => {
+                const parts = v.split('=');
+                return parts[0] === name ? decodeURIComponent(parts[1]) : r
+            }, '');
+        }
+
+        async function encryptAndEncode(text) {
+            const publicKey = (await openpgp.key.readArmored(getCookie('pgpPublic'))).keys[0];
+            const options = {
+                message: openpgp.message.fromText(text),
+                publicKeys: [publicKey]
+            };
+            const encrypted = await openpgp.encrypt(options);
+            return btoa(encrypted.data);
+        }
+
+        async function decodeAndDecrypt(base64) {
+            const encrypted = atob(base64);
+            const privateKeyObj = (await openpgp.key.readArmored(getCookie('pgpPrivate'))).keys[0];
+            await privateKeyObj.decrypt(getCookie('pgpPassphrase'));
+
+            const message = await openpgp.message.readArmored(encrypted);
+            const options = {
+                message,
+                privateKeys: [privateKeyObj]
+            };
+            const decrypted = await openpgp.decrypt(options);
+            return decrypted.data;
+        }
+
+        async function uploadToGist(content) {
+            let gistId = getCookie('gistId');
+            const url = gistId
+                ? `https://api.github.com/gists/${gistId}`
+                : `https://api.github.com/gists`;
+            const method = gistId ? 'PATCH' : 'POST';
+            const body = {
+                description: "PGP Encrypted Markdown",
+                public: false,
+                files: {
+                    "markdown.md": {
+                        content: content
+                    }
+                }
+            };
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': `token ${getCookie('githubToken')}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (!gistId && data.id) {
+                setCookie('gistId', data.id);
+                alert("New Gist created. Gist ID saved!");
+            }
+        }
+
+        async function loadFromGist() {
+            const gistId = getCookie('gistId');
+            if (!gistId) return;
+            const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+                headers: {
+                    'Authorization': `token ${getCookie('githubToken')}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            const data = await res.json();
+            const fileContent = data.files["markdown.md"].content;
+            const decryptedText = await decodeAndDecrypt(fileContent);
+            document.getElementById('editor').value = decryptedText;
+        }
+
+        function saveConfig() {
+            setCookie('githubToken', document.getElementById('githubToken').value);
+            setCookie('gistId', document.getElementById('gistId').value);
+            setCookie('pgpPublic', document.getElementById('pgpPublic').value);
+            setCookie('pgpPrivate', document.getElementById('pgpPrivate').value);
+            setCookie('pgpPassphrase', document.getElementById('pgpPassphrase').value);
+            alert('Configuration saved.');
+        }
+
+        function loadConfig() {
+            document.getElementById('githubToken').value = getCookie('githubToken');
+            document.getElementById('gistId').value = getCookie('gistId');
+            document.getElementById('pgpPublic').value = getCookie('pgpPublic');
+            document.getElementById('pgpPrivate').value = getCookie('pgpPrivate');
+            document.getElementById('pgpPassphrase').value = getCookie('pgpPassphrase');
+        }
+
+        async function exportConfig() {
+            const password = prompt("Enter a password to encrypt your config:");
+            if (!password) return;
+
+            const config = {
+                githubToken: getCookie('githubToken'),
+                gistId: getCookie('gistId'),
+                pgpPublic: getCookie('pgpPublic'),
+                pgpPrivate: getCookie('pgpPrivate'),
+                pgpPassphrase: getCookie('pgpPassphrase')
+            };
+            const json = JSON.stringify(config);
+
+            const encrypted = await openpgp.encrypt({
+                message: openpgp.message.fromText(json),
+                passwords: [password],
+                armor: true
+            });
+
+            const base64 = btoa(encrypted.data);
+            const blob = new Blob([base64], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'config.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function importConfigFile(file) {
+            const password = prompt("Enter the password to decrypt your config:");
+            if (!password) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const base64 = e.target.result;
+                    const encrypted = atob(base64.trim());
+                    const message = await openpgp.message.readArmored(encrypted);
+                    const { data: decrypted } = await openpgp.decrypt({
+                        message,
+                        passwords: [password],
+                        format: 'utf8'
+                    });
+                    const config = JSON.parse(decrypted);
+
+                    document.getElementById('githubToken').value = config.githubToken || '';
+                    document.getElementById('gistId').value = config.gistId || '';
+                    document.getElementById('pgpPublic').value = config.pgpPublic || '';
+                    document.getElementById('pgpPrivate').value = config.pgpPrivate || '';
+                    document.getElementById('pgpPassphrase').value = config.pgpPassphrase || '';
+                    saveConfig();
+                    loadConfig();
+                    alert('Configuration imported.');
+                } catch (err) {
+                    alert('Failed to import configuration: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        document.getElementById('saveBtn').addEventListener('click', async () => {
+            const text = document.getElementById('editor').value;
+            const encrypted = await encryptAndEncode(text);
+            await uploadToGist(encrypted);
+            alert('Saved to GitHub Gist!');
+        });
+
+        document.getElementById('saveConfig').addEventListener('click', () => {
+            saveConfig();
+        });
+
+        document.getElementById('exportConfig').addEventListener('click', () => {
+            exportConfig();
+        });
+
+        document.getElementById('importConfig').addEventListener('click', () => {
+            document.getElementById('importFile').click();
+        });
+
+        document.getElementById('importFile').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                importConfigFile(file);
+            }
+        });
+
+        window.onload = async () => {
+            loadConfig();
+            if (getCookie('githubToken') && getCookie('pgpPublic') && getCookie('pgpPrivate')) {
+                await loadFromGist();
+            }
+        };
+    </script>
+</body>
+</html>
