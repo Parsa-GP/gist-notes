@@ -45,7 +45,10 @@
     </div>
 
     <textarea id="editor"></textarea><br>
+    <button id="loadBtn">Refresh</button>
     <button id="saveBtn">Save to Gist</button>
+
+    <div id="list"></div>
 
     <script>
         function setCookie(name, value, days = 365) {
@@ -126,7 +129,22 @@
             const data = await res.json();
             const fileContent = data.files["data.asc"].content;
             const decryptedText = await decodeAndDecrypt(fileContent);
+            console.log(decryptedText)
+            setCookie("data", decryptedText)
             document.getElementById('editor').value = decryptedText;
+
+            const list = document.getElementById("list");
+            const jsonifiedText = JSON.parse(decryptedText)
+            jsonifiedText.forEach(item => {
+                const li = document.createElement("li");
+                li.id = item.id;
+                const a = document.createElement("a");
+                a.href = `edit.html?id=${encodeURIComponent(item.id)}`;
+                a.textContent = item.type === "folder" ? item.name : item.title;
+                li.appendChild(a);
+                list.appendChild(li);
+            });
+
         }
 
         function saveConfig() {
@@ -216,6 +234,15 @@
             alert('Saved to GitHub Gist!');
         });
 
+        document.getElementById('loadBtn').addEventListener('click', async () => {
+            loadConfig();
+            if (getCookie('githubToken') && getCookie('pgpPublic') && getCookie('pgpPrivate')) {
+                await loadFromGist();
+            } else {
+                alert("Please configure before refreshing.")
+            }
+        });
+
         document.getElementById('saveConfig').addEventListener('click', () => {
             saveConfig();
         });
@@ -237,6 +264,10 @@
 
         window.onload = async () => {
             loadConfig();
+            const data = getCookie("data")
+            if (data) {
+                document.getElementById("editor").value = datas
+            }
             if (getCookie('githubToken') && getCookie('pgpPublic') && getCookie('pgpPrivate')) {
                 await loadFromGist();
             }
