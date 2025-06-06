@@ -7,11 +7,11 @@
 }
 
 ::-webkit-scrollbar-thumb {
-	/* Foreground */
+	/* Scrollbar Foreground */
   background: var(--primary);
 }
 ::-webkit-scrollbar-track {
-	/* Background */
+	/* Scrollbar Background */
   background: var(--primary-bg);
   background: transparent;
 }
@@ -32,57 +32,71 @@ table tr > td {
 }
 
 
-#config {
-	border: 2px solid var(--primary);
-	padding: 8px;
-	border-radius: 8px;
-	height: 24px;
-	overflow: hidden;
-	transition-duration: .2s;
-	transition-delay: .1s;
-	margin-bottom: 20px;
+
+
+
+
+#main {
+	display: flex;
+	width: 100%;
+	gap: 8px;
 }
-#config:hover {
-	height: 300px;
+#left {
+	padding: 8px;
+	width: 350px;
+	height: calc(100vh - 32px);
+	overflow: hidden;
 	overflow-y: scroll;
-	transition-duration: .1s;
-	transition-delay: .5s;
+	mask-image: linear-gradient(to bottom, white 95%, transparent 100%);
+}
+#gap {
+	background-image: linear-gradient(to bottom, var(--primary), var(--primary), transparent, var(--primary), var(--primary));
+	width: 2px;
+	height: calc(100vh - 16px);
+}
+#right {
+	width: calc(100% - 342px);
+}
+
+
+
+
+
+
+#config {
+	padding: 8px;
+	overflow: hidden;
+	overflow-y: scroll;
+	display: grid;
+	gap: 10px;
 }
 
 #cfg-title {
 	font-size: larger;
 	font-weight: bold;
-	position: absolute;
-	background-color: var(--primary-bg);
-	padding: 0 5px;
-}
-#cfg-subtitle {
-	font-size: small;
-	position: absolute;
-	right: 18px;
-	margin-top: 4px;
-	background-color: var(--primary-bg);
-	padding: 0 5px;
+	padding-left: 5px;
 }
 
 input[type="text"],
 input[type="password"],
 textarea {
-	background-color:  var(--primary-bg);
-	color: var(--text);
+	background-color: transparent;
 	border-radius: 8px;
+	color: var(--text);
+	border: 0;
 	border: 2px solid var(--primary);
 	padding: 8px;
+	width: calc(100% - 16px);
 }
 input[type="text"]:focus,
 input[type="password"]:focus,
+textarea {
+	width: calc(100% - 16px);
+	border: 2px solid var(--primary);
+}
 textarea:focus {
 	outline: 1px solid var(--primary);
 	outline-offset: 1px;
-}
-textarea {
-	width: calc(100vw - 38px);
-	height: 300px;
 }
 button {
 	background-color:  var(--primary-bg);
@@ -103,6 +117,7 @@ button {
 .title {
 	cursor: pointer;
 }
+
 .remove {
 	color:deeppink;
 	font-weight: bold;

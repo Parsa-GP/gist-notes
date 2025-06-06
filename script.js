@@ -137,6 +137,7 @@ function renderTree() {
                 // [-] button for removing the unwanted notes/folder
                 const deleteBtn = document.createElement("span");
                 deleteBtn.textContent = " [-]";
+
                 deleteBtn.className = "remove";
                 deleteBtn.onclick = () => {
                     if (!confirm(`Delete this ${item.type}?`)) return;
@@ -160,6 +161,7 @@ function renderTree() {
                     // [+] button for creating note
                     const addBtn = document.createElement("span");
                     addBtn.textContent = " + ";
+
                     addBtn.className = "add";
                     addBtn.onclick = () => {
                         const newNote = {
