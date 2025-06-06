@@ -92,3 +92,52 @@ button {
 	border-radius: 8px;
 	box-shadow: 1px 1px 0 var(--primary), 2px 2px 0 var(--primary);
 }
+
+.modifited {
+	font-weight: bold;
+}
+.modifited::before {
+	content: "* ";
+	font-weight: bold;
+}
+.title {
+	cursor: pointer;
+}
+.remove {
+	color:deeppink;
+	font-weight: bold;
+	cursor: pointer;
+}
+.edit {
+	color:cornflowerblue;
+	font-weight: bold;
+	cursor: pointer;
+}
+.add {
+	color:aquamarine;
+	font-weight: bold;
+	cursor: pointer;
+}
+
+.collapsed {
+	display: none;
+}
+.arrow::before, .note::before {
+	color: var(--primary);
+	font-size: small;
+}
+.arrow.closed::before {
+	content: "▶ ";
+}
+.arrow.opened::before {
+	content: "▼ ";
+}
+.note::before {
+	content: "[N] ";
+}
+
+#tree ul {
+	list-style: none;
+	padding-left: 15px;
+	border-left: 2px solid var(--primary);
+}
