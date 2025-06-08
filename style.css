@@ -16,9 +16,27 @@
   background: transparent;
 }
 
+@keyframes bg-pulse {
+	from {
+    background-position: 0% 100%;
+  }
+  to {
+    background-position: 100% 0%;
+  }
+}
+
 body {
 	background: var(--bg);
 	color: var(--text);
+	background-image: linear-gradient(160deg, var(--primary-bg) 40%, var(--primary-dark));
+	animation-duration: 1s;
+	animation-name: bg-pulse;
+	background-size: 200% 200%;
+  background-position: 0% 100%;
+  animation-duration: 45s;
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); /* easeInOutSine */
+  animation-direction: alternate;
 }
 
 table {
@@ -62,6 +80,9 @@ table tr > td {
 
 
 
+#editor {
+	height: calc(100% - 40px);
+}
 
 #config {
 	padding: 8px;
@@ -79,13 +100,21 @@ table tr > td {
 
 #status {
 	font-style: italic;
-	padding-left: 5px;
+  font-size: small;
+  padding-left: 5px;
+  height: 20px;
+  display: inline-block;
+  padding-top: 2px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 100%;
 }
 
 input[type="text"],
 input[type="password"],
 textarea {
-	background-color: transparent;
+	background-color: #00000066;
 	border-radius: 8px;
 	color: var(--text);
 	border: 0;
@@ -95,16 +124,34 @@ textarea {
 }
 input[type="text"]:focus,
 input[type="password"]:focus,
-textarea {
+textarea:focus {
 	width: calc(100% - 16px);
 	border: 2px solid var(--primary);
-}
-textarea:focus {
 	outline: 1px solid var(--primary);
 	outline-offset: 1px;
 }
+
+#config textarea {
+	width: calc(100% - 16px);
+	height: 100px;
+	overflow: hidden;
+}
+#config textarea:focus {
+	overflow-y: scroll;
+}
+
+#config textarea#pgpPrivate {
+	filter: blur(5px) blur(5px);
+	transition-duration: .2s;
+	overflow: hidden;
+}
+#config textarea#pgpPrivate:focus {
+	filter: blur(0px);
+	overflow-y: scroll;
+}
+
 button {
-	background-color:  var(--primary-bg);
+	background-color:  #00000066;
 	color: var(--text);
 	border: 2px solid var(--primary);
 	padding: 5px 8px;
