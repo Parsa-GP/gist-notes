@@ -1,3 +1,6 @@
+var data_json;
+let DEBUG;
+
 function setCookie(name, value, days = 365) {
 	const expires = new Date(Date.now() + days * 864e5).toUTCString();
 	document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
@@ -8,6 +11,12 @@ function getCookie(name) {
         const parts = v.split('=');
         return parts[0] === name ? decodeURIComponent(parts[1]) : r
 	}, '');
+}
+
+function log(text, toStatus=true) {
+    const status_element = document.getElementById("status");
+    status_element.innerHTML = text;
+    console.log(text);
 }
 
 async function encryptAndEncode(text) {
@@ -34,9 +43,12 @@ async function decodeAndDecrypt(base64) {
 	return decrypted.data;
 }
 
-var data_json;
-
 async function uploadToGist(content) {
+	log("[ENC] (1/2) Encrypting...")
+    const encrypted_content = await encryptAndEncode(content);
+    log("[ENC] (2/2) Encrypting done!")
+
+    log("[UPL] (1/3) Prepare to upload...");
 	let gistId = getCookie('gistId');
 	const url = gistId
         ? `https://api.github.com/gists/${gistId}`
@@ -47,10 +59,11 @@ async function uploadToGist(content) {
         public: false,
         files: {
             "data.asc": {
-                content: content
+                content: encrypted_content
             }
         }
 	};
+    log("[UPL] (2/3) Uploading to Gist...");
 	const res = await fetch(url, {
         method: method,
         headers: {
@@ -62,23 +75,33 @@ async function uploadToGist(content) {
 	const data = await res.json();
 	if (!gistId && data.id) {
         setCookie('gistId', data.id);
-        alert("New Gist created. Gist ID saved!");
+        alert("[UPL] New Gist created. Gist ID saved!");
+        log("New Gist created. Gist ID saved!");
+		log("[UPL] (3/3) Saved to GitHub Gist!");
 	}
 }
 
 async function loadFromGist() {
 	const gistId = getCookie('gistId');
 	if (!gistId) return;
+	log("[LOD] (1/2) Fetching from gist...");
 	const res = await fetch(`https://api.github.com/gists/${gistId}`, {
         headers: {
             'Authorization': `token ${getCookie('githubToken')}`,
             'Accept': 'application/vnd.github.v3+json'
         }
+	})
+	.catch(err => {
+		log("[LOD] Error fetching from gist: "+err);
+		return
 	});
 	const encData = await res.json();
 	const fileContent = encData.files["data.asc"].content;
+	log("[DEC] (1/2) Decoding...")
 	const decryptedText = await decodeAndDecrypt(fileContent);
-	//console.log(decryptedText)
+	log("[DEC] (2/2) Decoding done!")
+	log(decryptedText, false)
+    log("[LOD] (2/2) Gist loaded!...");
 	setCookie("data", decryptedText)
 
 	data_json = JSON.parse(decryptedText)
@@ -216,6 +239,7 @@ function saveConfig() {
 	setCookie('pgpPrivate', document.getElementById('pgpPrivate').value);
 	setCookie('pgpPassphrase', document.getElementById('pgpPassphrase').value);
 	alert('Configuration saved.');
+    log('[CFG] Configuration saved.');
 }
 
 function loadConfig() {
@@ -224,12 +248,14 @@ function loadConfig() {
 	document.getElementById('pgpPublic').value = getCookie('pgpPublic');
 	document.getElementById('pgpPrivate').value = getCookie('pgpPrivate');
 	document.getElementById('pgpPassphrase').value = getCookie('pgpPassphrase');
+    log('[CFG] Configuration loaded.');
 }
 
 async function exportConfig() {
 	const password = prompt("Enter a password to encrypt your config:");
 	if (!password) return;
 
+    log('[CFG] (1/3) Prepare the config...');
 	const config = {
         githubToken: getCookie('githubToken'),
         gistId: getCookie('gistId'),
@@ -239,6 +265,7 @@ async function exportConfig() {
 	};
 	const json = JSON.stringify(config);
 
+    log('[CFG] (2/3) Encrypting the config...');
 	const encrypted = await openpgp.encrypt({
         message: openpgp.message.fromText(json),
         passwords: [password],
@@ -252,6 +279,7 @@ async function exportConfig() {
 	a.href = url;
 	a.download = 'config.txt';
 	document.body.appendChild(a);
+    log('[CFG] (3/3) Exported! Please download the file.');
 	a.click();
 	document.body.removeChild(a);
 	URL.revokeObjectURL(url);
@@ -264,14 +292,18 @@ async function importConfigFile(file) {
 	const reader = new FileReader();
 	reader.onload = async function(e) {
         try {
+			log("[IMP] (1/5) Reading the file...");
             const base64 = e.target.result;
+			log("[IMP] (2/5) Decoding data...");
             const encrypted = atob(base64.trim());
             const message = await openpgp.message.readArmored(encrypted);
+			log("[IMP] (3/5) Decrypting data...");
             const { data: decrypted } = await openpgp.decrypt({
                     message,
                     passwords: [password],
                     format: 'utf8'
             });
+			log("[IMP] (4/5) Importing data...");
             const config = JSON.parse(decrypted);
 
             document.getElementById('githubToken').value = config.githubToken || '';
@@ -281,9 +313,11 @@ async function importConfigFile(file) {
             document.getElementById('pgpPassphrase').value = config.pgpPassphrase || '';
             saveConfig();
             loadConfig();
-            alert('Configuration imported.');
+            alert('Configuration imported!');
+			log("[IMP] (5/5) Configuration imported.");
         } catch (err) {
-            alert('Failed to import configuration: ' + err.message);
+            alert('Failed to import: ' + err.message);
+			log("[IMP] Failed to import: " + err.message);
         }
 	};
 	reader.readAsText(file);
@@ -291,8 +325,7 @@ async function importConfigFile(file) {
 
 document.getElementById('saveBtn').addEventListener('click', async () => {
 	const text = document.getElementById('editor').value;
-	const encrypted = await encryptAndEncode(text);
-	await uploadToGist(encrypted);
+	await uploadToGist(text);
 	alert('Saved to GitHub Gist!');
 });
 
@@ -336,6 +369,7 @@ document.getElementById("saveBtn").onclick = () => {
 
 window.onload = async () => {
 	loadConfig();
+	DEBUG=getCookie("debug")=="yes";
 	data_json = JSON.parse(getCookie("data"));
 	if (data_json) {
         renderTree();
